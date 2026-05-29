@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Abinesh 3D — Ultimate AI 3D Generator</title>
+  <meta name="description"
+    content="Generate stunning 3D models from text, images, or multi-view photos using Tripo AI. Export GLB, OBJ, FBX, STL, USDZ. Animate, stylize, refine.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@200;300;400;500;600&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="scan-line"></div>
+  <div class="grid-bg"></div>
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">
+        <div class="logo-cube"></div>
+      </div>
+      <div class="logo-text">ABI<span>NESH 3D</span></div>
+    </div>
+    <div class="header-nav" id="header-nav">
+      <div class="nav-pill active" data-tab="generate" onclick="setMainTab('generate')">⬡ Generate</div>
+      <div class="nav-pill" data-tab="enhance" onclick="setMainTab('enhance')">✦ Enhance</div>
+      <div class="nav-pill" data-tab="animate" onclick="setMainTab('animate')">▶ Animate</div>
+      <div class="nav-pill" data-tab="history" onclick="setMainTab('history')">☰ History</div>
+    </div>
+    <div class="status-bar">
+      <div class="status-dot" id="status-dot"></div>
+      <div class="status-txt" id="sys-status">CONNECTING...</div>
+      <div class="balance-chip" id="balance-chip" title="Tripo API Credits">—</div>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <!-- LEFT PANEL -->
+    <div class="panel" id="left-panel">
+      <div class="panel-header">
+        <span class="panel-header-icon">[01]</span>
+        <span class="panel-title">Input & Config</span>
+      </div>
+
+      <!-- GENERATE TAB CONTENT -->
+      <div id="tab-generate">
+        <div class="section">
+          <div class="mode-tabs" id="gen-mode-tabs">
+            <div class="mode-tab active" onclick="switchGenMode('image')">Image</div>
+            <div class="mode-tab" onclick="switchGenMode('text')">Text</div>
+            <div class="mode-tab" onclick="switchGenMode('multiview')">Multi-View</div>
+          </div>
+
+          <!-- Image Mode -->
+          <div id="gen-mode-image">
+            <div class="section-label">Single Image → 3D</div>
+            <div class="upload-zone" id="drop-zone-single">
+              <input type="file" accept="image/*" id="file-input-single" onchange="handleSingleFile(this.files)">
+              <div class="upload-icon">⬆</div>
+              <div class="upload-main">Drop image or click to browse</div>
+              <div class="upload-sub">PNG · JPG · WEBP (Max 20MB)</div>
+            </div>
+            <div class="img-grid" id="img-grid-single"></div>
+          </div>
+
+          <!-- Text Mode -->
+          <div id="gen-mode-text" style="display:none">
+            <div class="section-label">Text Prompt → 3D</div>
+            <textarea class="text-prompt-area" id="text-prompt"
+              placeholder="A futuristic cyberpunk sword with glowing neon edges, detailed panel lines, hard surface..."></textarea>
+            <div class="prompt-hints">
+              <span class="hint-chip" onclick="fillPrompt(this)">🗡️ Cyber Sword</span>
+              <span class="hint-chip" onclick="fillPrompt(this)">🏠 Modern House</span>
+              <span class="hint-chip" onclick="fillPrompt(this)">🚗 Sports Car</span>
+              <span class="hint-chip" onclick="fillPrompt(this)">🐉 Dragon</span>
+              <span class="hint-chip" onclick="fillPrompt(this)">👟 Sneaker</span>
+              <span class="hint-chip" onclick="fillPrompt(this)">🎮 Game Controller</span>
+            </div>
+          </div>
+
+          <!-- Multiview Mode -->
+          <div id="gen-mode-multiview" style="display:none">
+            <div class="section-label">Multi-View Images → 3D (2-6 views)</div>
+            <div class="upload-zone" id="drop-zone-multi">
+              <input type="file" accept="image/*" multiple id="file-input-multi"
+                onchange="handleMultiFiles(this.files)">
+              <div class="upload-icon">⬆</div>
+              <div class="upload-main">Drop multiple angle images</div>
+              <div class="upload-sub">Front · Side · Top · Back · ISO</div>
+            </div>
+            <div class="img-grid multi-grid" id="img-grid-multi"></div>
+          </div>
+        </div>
+
+        <!-- Model Version -->
+        <div class="section">
+          <div class="section-label">Tripo Model Version</div>
+          <select class="nf-select" id="model-version" onchange="updateModelInfo()">
+            <option value="v2.5-20250123" selected>v2.5 — Best Quality (Recommended)</option>
+            <option value="v2.0-20240919">v2.0 — Standard Quality</option>
+            <option value="v1.4-20240625">v1.4 — Fast Draft</option>
+          </select>
+          <div class="info-box" id="model-info">v2.5: Highest quality geometry and textures. Balanced speed. Recommended
+            for production.</div>
+        </div>
+
+        <!-- Options -->
+        <div class="section">
+          <div class="section-label">Generation Options</div>
+          <div class="toggle-row"><span class="toggle-label">Generate Texture</span>
+            <div class="toggle on" id="opt-texture" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="toggle-row"><span class="toggle-label">PBR Materials</span>
+            <div class="toggle on" id="opt-pbr" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="toggle-row"><span class="toggle-label">Auto-fix Input</span>
+            <div class="toggle on" id="opt-autofix" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+
+        <!-- Generate Button -->
+        <div class="section">
+          <button class="generate-btn" id="gen-btn" onclick="startGeneration()"><span id="gen-btn-text">⬡ GENERATE 3D
+              MODEL</span></button>
+          <div class="progress-container" id="progress-area" style="display:none;margin-top:10px">
+            <div class="progress-label"><span id="progress-stage">Initializing...</span><span
+                id="progress-pct">0%</span></div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="prog-fill"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ENHANCE TAB -->
+      <div id="tab-enhance" style="display:none">
+        <div class="section">
+          <div class="section-label">Post-Processing Tools</div>
+          <p class="section-desc">Apply refinement, stylization, or retexturing to a generated model.</p>
+          <div class="enhance-grid">
+            <button class="enhance-card" onclick="startEnhance('refine')">
+              <div class="enhance-icon">✨</div>
+              <div class="enhance-title">Refine Model</div>
+              <div class="enhance-desc">Upgrade draft → high-res mesh</div>
+            </button>
+            <button class="enhance-card" onclick="startEnhance('texture')">
+              <div class="enhance-icon">🎨</div>
+              <div class="enhance-title">AI Retexture</div>
+              <div class="enhance-desc">Re-texture with new prompt</div>
+            </button>
+            <button class="enhance-card" onclick="startEnhance('stylize_lego')">
+              <div class="enhance-icon">🧱</div>
+              <div class="enhance-title">LEGO Style</div>
+              <div class="enhance-desc">Brick-built look</div>
+            </button>
+            <button class="enhance-card" onclick="startEnhance('stylize_voxel')">
+              <div class="enhance-icon">🟩</div>
+              <div class="enhance-title">Voxel Style</div>
+              <div class="enhance-desc">Minecraft-like voxels</div>
+            </button>
+            <button class="enhance-card" onclick="startEnhance('stylize_voronoi')">
+              <div class="enhance-icon">🔷</div>
+              <div class="enhance-title">Voronoi Style</div>
+              <div class="enhance-desc">Organic cell pattern</div>
+            </button>
+            <button class="enhance-card" onclick="startEnhance('lowpoly')">
+              <div class="enhance-icon">📐</div>
+              <div class="enhance-title">Low Poly</div>
+              <div class="enhance-desc">Optimize polygon count</div>
+            </button>
+          </div>
+        </div>
+        <div class="section" id="retexture-prompt-section" style="display:none">
+          <div class="section-label">Retexture Prompt</div>
+          <textarea class="text-prompt-area" id="retexture-prompt"
+            placeholder="Golden metallic finish with rust details and weathered surface..."></textarea>
+        </div>
+        <div class="section">
+          <div class="info-box warn" id="enhance-info">Select a model from History first, then choose an enhancement.
+          </div>
+        </div>
+      </div>
+
+      <!-- ANIMATE TAB -->
+      <div id="tab-animate" style="display:none">
+        <div class="section">
+          <div class="section-label">Animation & Rigging</div>
+          <p class="section-desc">Add skeleton rigging and animation to humanoid or quadruped models.</p>
+          <div class="enhance-grid">
+            <button class="enhance-card wide" onclick="startAnimate('rig')">
+              <div class="enhance-icon">🦴</div>
+              <div class="enhance-title">Auto-Rig</div>
+              <div class="enhance-desc">AI skeleton rigging for animation</div>
+            </button>
+            <button class="enhance-card wide" onclick="startAnimate('retarget')">
+              <div class="enhance-icon">🏃</div>
+              <div class="enhance-title">Retarget Animation</div>
+              <div class="enhance-desc">Apply motion capture to rigged model</div>
+            </button>
+          </div>
+        </div>
+        <div class="section" id="anim-options" style="display:none">
+          <div class="section-label">Animation URL (BVH/FBX)</div>
+          <input type="text" class="nf-input" id="anim-url" placeholder="https://example.com/animation.fbx">
+        </div>
+        <div class="section">
+          <div class="info-box warn" id="animate-info">Select a model from History first, then choose Rig or Retarget.
+          </div>
+        </div>
+      </div>
+
+      <!-- HISTORY TAB -->
+      <div id="tab-history" style="display:none">
+        <div class="section">
+          <div class="section-label">Generation History</div>
+          <p class="section-desc">Click any task to load its model and enable enhancements.</p>
+          <div id="history-list" class="history-list">
+            <div class="history-empty">No tasks yet. Generate your first model!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CENTER VIEWPORT -->
+    <div class="viewport" id="viewport">
+      <canvas id="three-canvas"></canvas>
+
+      <div class="no-model-msg" id="no-model-msg">
+        <div class="no-model-icon">⬡</div>
+        <div class="no-model-txt">Awaiting Generation</div>
+      </div>
+
+      <div class="viewport-overlay">
+        <div class="corner-bracket tl"></div>
+        <div class="corner-bracket tr"></div>
+        <div class="corner-bracket bl"></div>
+        <div class="corner-bracket br"></div>
+      </div>
+
+      <div class="viewport-hud">
+        <div class="hud-chip active-chip" id="hud-model-name">NO MODEL</div>
+        <div class="hud-chip" id="hud-render-mode">SOLID</div>
+        <div class="hud-chip" id="hud-poly">0 TRIS</div>
+      </div>
+
+      <div class="pipeline-panel" id="pipeline-panel">
+        <div class="pipe-step">
+          <div class="pipe-dot pending" id="pd-0"></div><span class="pipe-name pending" id="pn-0">Prepare</span>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-dot pending" id="pd-1"></div><span class="pipe-name pending" id="pn-1">Upload</span>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-dot pending" id="pd-2"></div><span class="pipe-name pending" id="pn-2">API Queue</span>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-dot pending" id="pd-3"></div><span class="pipe-name pending" id="pn-3">Mesh Gen</span>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-dot pending" id="pd-4"></div><span class="pipe-name pending" id="pn-4">Texturing</span>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-dot pending" id="pd-5"></div><span class="pipe-name pending" id="pn-5">Download</span>
+        </div>
+        <div class="pipe-step">
+          <div class="pipe-dot pending" id="pd-6"></div><span class="pipe-name pending" id="pn-6">Render</span>
+        </div>
+      </div>
+
+      <div class="viewport-controls">
+        <button class="vp-btn active" id="rb-solid" onclick="setRenderMode('solid')">Solid</button>
+        <button class="vp-btn" id="rb-wireframe" onclick="setRenderMode('wireframe')">Wire</button>
+        <button class="vp-btn" id="rb-clay" onclick="setRenderMode('clay')">Clay</button>
+        <button class="vp-btn" id="rb-normal" onclick="setRenderMode('normal')">Normal</button>
+        <button class="vp-btn" onclick="resetCamera()">Reset</button>
+      </div>
+
+      <div class="viewport-stats">
+        <div id="stat-fps">FPS: <span>--</span></div>
+        <div id="stat-verts">Verts: <span>--</span></div>
+        <div id="stat-tris">Tris: <span>--</span></div>
+      </div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="panel-header">
+        <span class="panel-header-icon">[03]</span>
+        <span class="panel-title">Output & Export</span>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Mesh Statistics</div>
+        <div class="mesh-stat-grid">
+          <div class="mesh-stat">
+            <div class="mesh-stat-val" id="stat-vertices">—</div>
+            <div class="mesh-stat-lbl">Vertices</div>
+          </div>
+          <div class="mesh-stat">
+            <div class="mesh-stat-val" id="stat-triangles">—</div>
+            <div class="mesh-stat-lbl">Triangles</div>
+          </div>
+          <div class="mesh-stat">
+            <div class="mesh-stat-val" id="stat-materials">—</div>
+            <div class="mesh-stat-lbl">Materials</div>
+          </div>
+          <div class="mesh-stat">
+            <div class="mesh-stat-val" id="stat-task-status">—</div>
+            <div class="mesh-stat-lbl">Status</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Direct Download</div>
+        <button class="export-btn" id="dl-glb-btn" onclick="downloadOriginalGLB()" disabled>
+          <span class="fmt glb">GLB</span>Download Original glTF<span class="dl-arrow">↓</span>
+        </button>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Tripo Format Conversion</div>
+        <button class="export-btn format-conv-btn" id="conv-obj" onclick="requestConversion('OBJ')" disabled><span
+            class="fmt">OBJ</span>Convert to OBJ<span class="dl-tag">+MTL</span></button>
+        <button class="export-btn format-conv-btn" id="conv-fbx" onclick="requestConversion('FBX')" disabled><span
+            class="fmt fbx">FBX</span>Convert to FBX<span class="dl-tag">Autodesk</span></button>
+        <button class="export-btn format-conv-btn" id="conv-stl" onclick="requestConversion('STL')" disabled><span
+            class="fmt stl">STL</span>Convert to STL<span class="dl-tag">3D Print</span></button>
+        <button class="export-btn format-conv-btn" id="conv-usdz" onclick="requestConversion('USDZ')" disabled><span
+            class="fmt usdz">USDZ</span>Convert to USDZ<span class="dl-tag">Apple AR</span></button>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Rendered Preview</div>
+        <div class="texture-preview">
+          <div class="tex-card" id="preview-image-card">
+            <span class="tex-no-img" id="preview-no-img">No Preview</span>
+            <img id="preview-image" src="" alt="Tripo 3D preview">
+            <div class="tex-label">Tripo Render</div>
+          </div>
+          <div class="tex-card" id="source-image-card">
+            <span class="tex-no-img" id="source-no-img">No Source</span>
+            <img id="source-image" src="" alt="Source image">
+            <div class="tex-label">Source Input</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Pipeline Log</div>
+        <div class="log-area" id="log-area">
+          <div class="log-line"><span class="log-time">00:00</span><span class="log-msg info">Abinesh 3D
+              initialized</span></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">Lighting</div>
+        <select class="nf-select" id="lighting-select" onchange="changeLighting(this.value)">
+          <option value="studio">Studio (Cold/Warm)</option>
+          <option value="outdoor">Outdoor Daylight</option>
+          <option value="night">Cyberpunk Neon</option>
+          <option value="neutral">Neutral Flat</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

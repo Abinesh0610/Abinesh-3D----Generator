@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NeuralForge 3D</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Share+Tech+Mono&family=Exo+2:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --nf-bg:#040810;
+  --nf-panel:#070e1a;
+  --nf-panel2:#0a1525;
+  --nf-border:#0f2a4a;
+  --nf-border2:#1a3a5c;
+  --nf-accent:#00d4ff;
+  --nf-accent2:#0066ff;
+  --nf-accent3:#7b2fff;
+  --nf-green:#00ff88;
+  --nf-orange:#ff6b00;
+  --nf-text:#c8dff5;
+  --nf-text2:#6a8fa8;
+  --nf-text3:#3a5570;
+  --nf-glow:0 0 20px rgba(0,212,255,0.3);
+  --nf-glow2:0 0 40px rgba(0,212,255,0.15);
+}
+body{background:var(--nf-bg);color:var(--nf-text);font-family:'Exo 2',sans-serif;min-height:100vh;overflow-x:hidden}
+.scan-line{position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--nf-accent),transparent);animation:scan 4s linear infinite;opacity:0.4;pointer-events:none;z-index:9999}
+@keyframes scan{0%{top:-2px}100%{top:100vh}}
+.grid-bg{position:fixed;inset:0;background-image:linear-gradient(rgba(0,212,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
+header{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--nf-border);background:rgba(4,8,16,0.9);backdrop-filter:blur(10px);position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:36px;height:36px;border:1.5px solid var(--nf-accent);border-radius:6px;display:flex;align-items:center;justify-content:center;position:relative}
+.logo-icon::before{content:'';position:absolute;inset:4px;border:1px solid rgba(0,212,255,0.4);border-radius:3px}
+.logo-cube{width:14px;height:14px;border:2px solid var(--nf-accent);transform:rotate(45deg);animation:rotateCube 6s linear infinite}
+@keyframes rotateCube{to{transform:rotate(405deg)}}
+.logo-text{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:2px;color:#fff}
+.logo-text span{color:var(--nf-accent)}
+.header-nav{display:flex;align-items:center;gap:6px}
+.nav-pill{padding:5px 14px;border-radius:4px;font-size:12px;font-weight:500;letter-spacing:1px;border:1px solid var(--nf-border2);color:var(--nf-text2);cursor:pointer;transition:all 0.2s;text-transform:uppercase;font-family:'Rajdhani',sans-serif}
+.nav-pill:hover,.nav-pill.active{border-color:var(--nf-accent);color:var(--nf-accent);background:rgba(0,212,255,0.05)}
+.nav-pill.cta{background:var(--nf-accent);color:#000;border-color:var(--nf-accent);font-weight:700}
+.nav-pill.cta:hover{background:#00b8d9}
+.status-bar{display:flex;align-items:center;gap:16px}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--nf-green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1;box-shadow:0 0 6px var(--nf-green)}50%{opacity:0.5;box-shadow:none}}
+.status-txt{font-size:11px;font-family:'Share Tech Mono',monospace;color:var(--nf-text2);letter-spacing:1px}
+.main-layout{display:grid;grid-template-columns:320px 1fr 280px;gap:0;height:calc(100vh - 57px);overflow:hidden}
+.panel{background:var(--nf-panel);border-right:1px solid var(--nf-border);overflow-y:auto;padding:0}
+.panel::-webkit-scrollbar{width:3px}
+.panel::-webkit-scrollbar-track{background:transparent}
+.panel::-webkit-scrollbar-thumb{background:var(--nf-border2);border-radius:2px}
+.panel-header{padding:14px 18px;border-bottom:1px solid var(--nf-border);display:flex;align-items:center;gap:8px;position:sticky;top:0;background:var(--nf-panel);z-index:10}
+.panel-header-icon{color:var(--nf-accent);font-size:13px;font-family:'Share Tech Mono',monospace}
+.panel-title{font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--nf-text)}
+.section{padding:16px 18px;border-bottom:1px solid var(--nf-border)}
+.section-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--nf-text3);margin-bottom:10px;font-family:'Share Tech Mono',monospace}
+.upload-zone{border:1.5px dashed var(--nf-border2);border-radius:8px;padding:28px 16px;text-align:center;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden;background:rgba(0,212,255,0.01)}
+.upload-zone:hover,.upload-zone.dragover{border-color:var(--nf-accent);background:rgba(0,212,255,0.04);box-shadow:var(--nf-glow)}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+.upload-icon{font-size:32px;margin-bottom:8px;color:var(--nf-accent);opacity:0.7}
+.upload-main{font-size:13px;font-weight:500;color:var(--nf-text);margin-bottom:4px}
+.upload-sub{font-size:11px;color:var(--nf-text3);font-family:'Share Tech Mono',monospace}
+.upload-formats{display:flex;flex-wrap:wrap;gap:4px;margin-top:10px;justify-content:center}
+.fmt-badge{padding:2px 7px;border-radius:3px;font-size:10px;font-family:'Share Tech Mono',monospace;border:1px solid var(--nf-border2);color:var(--nf-text3)}
+.img-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.img-thumb{aspect-ratio:1;border-radius:5px;overflow:hidden;border:1px solid var(--nf-border);position:relative;cursor:pointer;transition:all 0.2s}
+.img-thumb:hover{border-color:var(--nf-accent)}
+.img-thumb img{width:100%;height:100%;object-fit:cover}
+.img-thumb .remove-btn{position:absolute;top:3px;right:3px;width:16px;height:16px;background:rgba(0,0,0,0.8);border:1px solid rgba(255,100,100,0.5);border-radius:2px;color:#ff6464;font-size:10px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.2s}
+.img-thumb:hover .remove-btn{opacity:1}
+.mode-tabs{display:flex;gap:4px;margin-bottom:12px}
+.mode-tab{flex:1;padding:7px 6px;text-align:center;border-radius:5px;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border:1px solid var(--nf-border);color:var(--nf-text3);font-family:'Rajdhani',sans-serif;transition:all 0.2s}
+.mode-tab.active{background:rgba(0,212,255,0.1);border-color:var(--nf-accent);color:var(--nf-accent)}
+.slider-row{margin-bottom:12px}
+.slider-label{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+.slider-name{font-size:11px;color:var(--nf-text2);letter-spacing:0.5px}
+.slider-val{font-size:11px;font-family:'Share Tech Mono',monospace;color:var(--nf-accent)}
+input[type=range]{width:100%;-webkit-appearance:none;height:3px;background:var(--nf-border2);border-radius:2px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--nf-accent);cursor:pointer;border:2px solid var(--nf-bg);box-shadow:0 0 8px var(--nf-accent)}
+.select-row{margin-bottom:10px}
+.nf-select{width:100%;background:var(--nf-panel2);border:1px solid var(--nf-border2);border-radius:5px;padding:6px 10px;font-size:12px;color:var(--nf-text);font-family:'Exo 2',sans-serif;outline:none;cursor:pointer}
+.nf-select:focus{border-color:var(--nf-accent)}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.toggle-label{font-size:11px;color:var(--nf-text2)}
+.toggle{width:34px;height:18px;background:var(--nf-border2);border-radius:9px;position:relative;cursor:pointer;transition:background 0.2s}
+.toggle.on{background:var(--nf-accent2)}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:12px;height:12px;border-radius:50%;background:#fff;transition:left 0.2s}
+.toggle.on::after{left:19px}
+.generate-btn{width:100%;padding:12px;background:linear-gradient(135deg,var(--nf-accent2),var(--nf-accent3));border:none;border-radius:6px;color:#fff;font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:700;letter-spacing:3px;text-transform:uppercase;cursor:pointer;transition:all 0.3s;position:relative;overflow:hidden}
+.generate-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,var(--nf-accent),var(--nf-accent2));opacity:0;transition:opacity 0.3s}
+.generate-btn:hover::before{opacity:1}
+.generate-btn:hover{transform:translateY(-1px);box-shadow:0 8px 30px rgba(0,102,255,0.4)}
+.generate-btn:active{transform:scale(0.98)}
+.generate-btn span{position:relative;z-index:1}
+.generate-btn.processing{animation:btnPulse 1.5s infinite}
+@keyframes btnPulse{0%,100%{box-shadow:0 4px 20px rgba(0,102,255,0.3)}50%{box-shadow:0 4px 40px rgba(0,212,255,0.6)}}
+.viewport{position:relative;overflow:hidden;background:#020609}
+#three-canvas{display:block;width:100%;height:100%}
+.viewport-overlay{position:absolute;inset:0;pointer-events:none}
+.corner-bracket{position:absolute;width:20px;height:20px;border-color:var(--nf-accent);border-style:solid;opacity:0.4}
+.corner-bracket.tl{top:12px;left:12px;border-width:1px 0 0 1px}
+.corner-bracket.tr{top:12px;right:12px;border-width:1px 1px 0 0}
+.corner-bracket.bl{bottom:12px;left:12px;border-width:0 0 1px 1px}
+.corner-bracket.br{bottom:12px;right:12px;border-width:0 1px 1px 0}
+.viewport-hud{position:absolute;top:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px}
+.hud-chip{padding:4px 10px;border-radius:3px;background:rgba(4,8,16,0.8);border:1px solid var(--nf-border);font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--nf-text2);letter-spacing:1px;backdrop-filter:blur(4px)}
+.hud-chip.active-chip{border-color:var(--nf-accent);color:var(--nf-accent)}
+.viewport-controls{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px}
+.vp-btn{padding:6px 12px;border-radius:4px;background:rgba(4,8,16,0.85);border:1px solid var(--nf-border);font-size:11px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:var(--nf-text2);cursor:pointer;transition:all 0.2s;backdrop-filter:blur(4px)}
+.vp-btn:hover,.vp-btn.active{border-color:var(--nf-accent);color:var(--nf-accent);background:rgba(0,212,255,0.07)}
+.viewport-stats{position:absolute;bottom:14px;right:14px;font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--nf-text3);text-align:right;line-height:1.8}
+.viewport-stats span{color:var(--nf-text2)}
+.pipeline-panel{position:absolute;left:14px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:4px}
+.pipe-step{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:4px;background:rgba(4,8,16,0.8);border:1px solid var(--nf-border);backdrop-filter:blur(4px);min-width:140px}
+.pipe-dot{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--nf-text3);flex-shrink:0}
+.pipe-dot.done{background:var(--nf-green);border-color:var(--nf-green);box-shadow:0 0 8px var(--nf-green)}
+.pipe-dot.running{background:var(--nf-accent);border-color:var(--nf-accent);animation:pulse 1s infinite}
+.pipe-dot.pending{border-color:var(--nf-text3)}
+.pipe-name{font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--nf-text3)}
+.pipe-name.done{color:var(--nf-green)}
+.pipe-name.running{color:var(--nf-accent)}
+.right-panel{background:var(--nf-panel);border-left:1px solid var(--nf-border);overflow-y:auto}
+.right-panel::-webkit-scrollbar{width:3px}
+.right-panel::-webkit-scrollbar-thumb{background:var(--nf-border2)}
+.mesh-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.mesh-stat{background:var(--nf-panel2);border:1px solid var(--nf-border);border-radius:5px;padding:8px 10px}
+.mesh-stat-val{font-size:16px;font-weight:600;font-family:'Share Tech Mono',monospace;color:var(--nf-text)}
+.mesh-stat-lbl{font-size:10px;color:var(--nf-text3);margin-top:2px;letter-spacing:0.5px;text-transform:uppercase}
+.export-btn{width:100%;padding:8px 12px;border-radius:5px;background:var(--nf-panel2);border:1px solid var(--nf-border);color:var(--nf-text2);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all 0.2s;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.export-btn:hover{border-color:var(--nf-accent);color:var(--nf-accent);background:rgba(0,212,255,0.04)}
+.export-btn .fmt{font-size:10px;font-family:'Share Tech Mono',monospace;padding:2px 6px;border-radius:2px;background:rgba(0,212,255,0.1);color:var(--nf-accent);flex-shrink:0}
+.export-btn .fmt.glb{background:rgba(123,47,255,0.15);color:var(--nf-accent3)}
+.export-btn .fmt.stl{background:rgba(255,107,0,0.12);color:var(--nf-orange)}
+.export-btn .fmt.fbx{background:rgba(0,255,136,0.1);color:var(--nf-green)}
+.progress-container{margin-top:4px}
+.progress-label{display:flex;justify-content:space-between;font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--nf-text3);margin-bottom:5px}
+.progress-bar{height:3px;background:var(--nf-border);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--nf-accent2),var(--nf-accent));border-radius:2px;width:0%;transition:width 0.4s ease;position:relative}
+.progress-fill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:20px;background:rgba(255,255,255,0.3);animation:shimmer 1s infinite}
+@keyframes shimmer{0%{opacity:0}50%{opacity:1}100%{opacity:0}}
+.log-area{background:rgba(2,6,9,0.8);border:1px solid var(--nf-border);border-radius:5px;padding:10px;font-family:'Share Tech Mono',monospace;font-size:10px;line-height:1.8;max-height:120px;overflow-y:auto;color:var(--nf-text3)}
+.log-area::-webkit-scrollbar{width:2px}
+.log-area::-webkit-scrollbar-thumb{background:var(--nf-border2)}
+.log-line{display:flex;gap:8px}
+.log-time{color:var(--nf-text3);flex-shrink:0}
+.log-msg{color:var(--nf-text2)}
+.log-msg.ok{color:var(--nf-green)}
+.log-msg.info{color:var(--nf-accent)}
+.log-msg.warn{color:var(--nf-orange)}
+.texture-preview{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:6px}
+.tex-card{aspect-ratio:1;border-radius:5px;border:1px solid var(--nf-border);position:relative;overflow:hidden;background:var(--nf-panel2)}
+.tex-card canvas{width:100%;height:100%}
+.tex-label{position:absolute;bottom:0;left:0;right:0;padding:3px 6px;background:rgba(4,8,16,0.85);font-size:9px;font-family:'Share Tech Mono',monospace;color:var(--nf-text3);text-align:center}
+.no-model-msg{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--nf-text3);pointer-events:none}
+.no-model-icon{font-size:48px;opacity:0.2}
+.no-model-txt{font-size:13px;font-family:'Rajdhani',sans-serif;letter-spacing:2px;text-transform:uppercase;opacity:0.4}
+.text-prompt-area{resize:none;width:100%;background:var(--nf-panel2);border:1px solid var(--nf-border2);border-radius:5px;padding:8px 10px;font-size:12px;color:var(--nf-text);font-family:'Exo 2',sans-serif;outline:none;min-height:60px;line-height:1.5}
+.text-prompt-area:focus{border-color:var(--nf-accent)}
+.text-prompt-area::placeholder{color:var(--nf-text3)}
+.quality-selector{display:flex;gap:4px}
+.quality-opt{flex:1;padding:5px 4px;text-align:center;border:1px solid var(--nf-border);border-radius:4px;font-size:10px;font-family:'Rajdhani',sans-serif;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;color:var(--nf-text3);transition:all 0.2s}
+.quality-opt.sel{border-color:var(--nf-accent3);color:var(--nf-accent3);background:rgba(123,47,255,0.08)}
+.quality-opt:hover:not(.sel){border-color:var(--nf-border2);color:var(--nf-text2)}
+.divider{height:1px;background:var(--nf-border);margin:0}
+.model-preview-3d{display:none;position:absolute;inset:0}
+.model-preview-3d.visible{display:block}
+</style>
+</head>
+<body>
+<div class="scan-line"></div>
+<div class="grid-bg"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon"><div class="logo-cube"></div></div>
+    <div class="logo-text">NEURAL<span>FORGE</span></div>
+  </div>
+  <div class="header-nav">
+    <div class="nav-pill active" onclick="setTab(this,'img-to-3d')">Image → 3D</div>
+    <div class="nav-pill" onclick="setTab(this,'text-to-3d')">Text → 3D</div>
+    <div class="nav-pill" onclick="setTab(this,'gallery')">Gallery</div>
+    <div class="nav-pill cta">API Access</div>
+  </div>
+  <div class="status-bar">
+    <div class="status-dot"></div>
+    <div class="status-txt" id="sys-status">GPU: READY · VRAM 8.2GB</div>
+  </div>
+</header>
+
+<div class="main-layout">
+  <!-- LEFT PANEL -->
+  <div class="panel" id="left-panel">
+    <div class="panel-header">
+      <span class="panel-header-icon">[01]</span>
+      <span class="panel-title">Input &amp; Config</span>
+    </div>
+
+    <div class="section">
+      <div class="mode-tabs" id="mode-tabs">
+        <div class="mode-tab active" onclick="switchMode('upload',this)">Upload</div>
+        <div class="mode-tab" onclick="switchMode('text',this)">Text</div>
+        <div class="mode-tab" onclick="switchMode('url',this)">URL</div>
+      </div>
+
+      <!-- Upload Mode -->
+      <div id="mode-upload">
+        <div class="section-label">Drop Images (1–6 views)</div>
+        <div class="upload-zone" id="drop-zone">
+          <input type="file" accept="image/*" multiple id="file-input" onchange="handleFiles(this.files)">
+          <div style="font-size:28px;margin-bottom:8px;color:var(--nf-accent)">⬆</div>
+          <div class="upload-main">Drop images here</div>
+          <div class="upload-sub">PNG · JPG · WEBP · EXR · HDR</div>
+          <div class="upload-formats">
+            <span class="fmt-badge">Front</span>
+            <span class="fmt-badge">Side</span>
+            <span class="fmt-badge">Top</span>
+            <span class="fmt-badge">Back</span>
+            <span class="fmt-badge">ISO</span>
+          </div>
+        </div>
+        <div class="img-grid" id="img-grid"></div>
+      </div>
+
+      <!-- Text Mode -->
+      <div id="mode-text" style="display:none">
+        <div class="section-label">Text Prompt</div>
+        <textarea class="text-prompt-area" id="text-prompt" placeholder="A futuristic battle mech with glowing thrusters, detailed panel lines, battle-worn surface..."></textarea>
+        <div style="margin-top:8px" class="section-label">Style Preset</div>
+        <select class="nf-select">
+          <option>Realistic · Photogrammetry</option>
+          <option>Sci-Fi Hard Surface</option>
+          <option>Organic Character</option>
+          <option>Architecture · CAD</option>
+          <option>Game Asset · Low Poly</option>
+          <option>Industrial · Mechanical</option>
+        </select>
+      </div>
+
+      <!-- URL Mode -->
+      <div id="mode-url" style="display:none">
+        <div class="section-label">Image URL</div>
+        <input type="text" style="width:100%;background:var(--nf-panel2);border:1px solid var(--nf-border2);border-radius:5px;padding:7px 10px;font-size:12px;color:var(--nf-text);font-family:'Share Tech Mono',monospace;outline:none;margin-bottom:6px" placeholder="https://...">
+        <button class="nf-select" style="cursor:pointer;text-align:center;color:var(--nf-accent)">Fetch Image</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Pipeline Model</div>
+      <select class="nf-select" id="model-select" onchange="updateModelInfo()">
+        <option value="triposr">TripoSR · Fast (1–3s)</option>
+        <option value="instantmesh">InstantMesh · Balanced</option>
+        <option value="zero123">Zero-1-to-3 · Multi-view</option>
+        <option value="wonder3d">Wonder3D · Detailed</option>
+        <option value="one2345">One-2-3-45 · High Quality</option>
+      </select>
+      <div style="margin-top:6px;padding:6px 8px;background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.1);border-radius:4px;font-size:10px;font-family:'Share Tech Mono',monospace;color:var(--nf-text2)" id="model-info">
+        Fast reconstruction via TripoSR. Ideal for single-view generation. ~2s on GPU.
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Quality Tier</div>
+      <div class="quality-selector">
+        <div class="quality-opt" onclick="selectQuality(this)">Draft</div>
+        <div class="quality-opt sel" onclick="selectQuality(this)">Standard</div>
+        <div class="quality-opt" onclick="selectQuality(this)">Ultra</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Mesh Parameters</div>
+      <div class="slider-row">
+        <div class="slider-label"><span class="slider-name">Poly Count</span><span class="slider-val" id="poly-val">32K</span></div>
+        <input type="range" min="0" max="100" value="50" oninput="updateSlider(this,'poly-val',v=>[2,4,8,16,32,64,128,256][Math.round(v/14.3)].toString()+'K')">
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span class="slider-name">Smoothness</span><span class="slider-val" id="smooth-val">0.6</span></div>
+        <input type="range" min="0" max="100" value="60" oninput="updateSlider(this,'smooth-val',v=>(v/100).toFixed(2))">
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span class="slider-name">Texture Res</span><span class="slider-val" id="tex-val">2048</span></div>
+        <input type="range" min="0" max="100" value="66" oninput="updateSlider(this,'tex-val',v=>[512,1024,2048,4096][Math.round(v/33.3)].toString())">
+      </div>
+      <div class="slider-row">
+        <div class="slider-label"><span class="slider-name">Depth Boost</span><span class="slider-val" id="depth-val">0.75</span></div>
+        <input type="range" min="0" max="100" value="75" oninput="updateSlider(this,'depth-val',v=>(v/100).toFixed(2))">
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Features</div>
+      <div class="toggle-row"><span class="toggle-label">PBR Texture Baking</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="toggle-row"><span class="toggle-label">Auto UV Unwrap</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="toggle-row"><span class="toggle-label">Hidden Surface AI</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="toggle-row"><span class="toggle-label">Retopology Optimize</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+      <div class="toggle-row"><span class="toggle-label">Multi-view Diffusion</span><div class="toggle" onclick="this.classList.toggle('on')"></div></div>
+      <div class="toggle-row"><span class="toggle-label">CUDA Acceleration</span><div class="toggle on" onclick="this.classList.toggle('on')"></div></div>
+    </div>
+
+    <div class="section">
+      <button class="generate-btn" id="gen-btn" onclick="startGeneration()"><span id="gen-btn-text">⬡ GENERATE 3D MODEL</span></button>
+      <div class="progress-container" id="progress-area" style="display:none;margin-top:10px">
+        <div class="progress-label"><span id="progress-stage">Initializing...</span><span id="progress-pct">0%</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER VIEWPORT -->
+  <div class="viewport" id="viewport">
+    <canvas id="three-canvas"></canvas>
+
+    <div class="no-model-msg" id="no-model-msg">
+      <div class="no-model-icon">⬡</div>
+      <div class="no-model-txt">Awaiting Generation</div>
+    </div>
+
+    <div class="viewport-overlay">
+      <div class="corner-bracket tl"></div>
+      <div class="corner-bracket tr"></div>
+      <div class="corner-bracket bl"></div>
+      <div class="corner-bracket br"></div>
+    </div>
+
+    <div class="viewport-hud">
+      <div class="hud-chip active-chip" id="hud-model-name">NO MODEL</div>
+      <div class="hud-chip" id="hud-render-mode">SOLID</div>
+      <div class="hud-chip" id="hud-poly">0 TRIS</div>
+    </div>
+
+    <div class="pipeline-panel" id="pipeline-panel">
+      <div class="pipe-step"><div class="pipe-dot pending" id="pd-0"></div><span class="pipe-name pending" id="pn-0">CLIP Analysis</span></div>
+      <div class="pipe-step"><div class="pipe-dot pending" id="pd-1"></div><span class="pipe-name pending" id="pn-1">Depth Estimate</span></div>
+      <div class="pipe-step"><div class="pipe-dot pending" id="pd-2"></div><span class="pipe-name pending" id="pn-2">Multi-view Gen</span></div>
+      <div class="pipe-step"><div class="pipe-dot pending" id="pd-3"></div><span class="pipe-name pending" id="pn-3">3D Reconstruct</span></div>
+      <div class="pipe-step"><div class="pipe-dot pending" id="pd-4"></div><span class="pipe-name pending" id="pn-4">Mesh Neural</span></div>
+      <div class="pipe-step"><div class="pipe-dot pending" id="pd-5"></div><span class="pipe-name pending" id="pn-5">Retopology</span></div>
+      <div class="pipe-step"><div class="pipe-dot pending" id="pd-6"></div><span class="pipe-name pending" id="pn-6">UV Unwrap</span></div>
+      <div class="pipe-step"><div class="pipe-dot pending" id="pd-7"></div><span class="pipe-name pending" id="pn-7">Texture Bake</span></div>
+    </div>
+
+    <div class="viewport-controls">
+      <button class="vp-btn active" onclick="setRenderMode('solid',this)">Solid</button>
+      <button class="vp-btn" onclick="setRenderMode('wireframe',this)">Wire</button>
+      <button class="vp-btn" onclick="setRenderMode('clay',this)">Clay</button>
+      <button class="vp-btn" onclick="setRenderMode('normal',this)">Normal</button>
+      <button class="vp-btn" onclick="resetCamera()">Reset</button>
+    </div>
+
+    <div class="viewport-stats" id="viewport-stats">
+      <div id="stat-fps">FPS: <span>--</span></div>
+      <div id="stat-verts">Verts: <span>--</span></div>
+      <div id="stat-tris">Tris: <span>--</span></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="right-panel">
+    <div class="panel-header">
+      <span class="panel-header-icon">[03]</span>
+      <span class="panel-title">Output &amp; Export</span>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Mesh Statistics</div>
+      <div class="mesh-stat-grid">
+        <div class="mesh-stat"><div class="mesh-stat-val" id="stat-vertices">—</div><div class="mesh-stat-lbl">Vertices</div></div>
+        <div class="mesh-stat"><div class="mesh-stat-val" id="stat-triangles">—</div><div class="mesh-stat-lbl">Triangles</div></div>
+        <div class="mesh-stat"><div class="mesh-stat-val" id="stat-materials">—</div><div class="mesh-stat-lbl">Materials</div></div>
+        <div class="mesh-stat"><div class="mesh-stat-val" id="stat-uvchannels">—</div><div class="mesh-stat-lbl">UV Channels</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Export Formats</div>
+      <button class="export-btn" onclick="exportModel('OBJ')"><span class="fmt">OBJ</span>Wavefront Object<span style="margin-left:auto;font-size:10px;color:var(--nf-text3)">+MTL</span></button>
+      <button class="export-btn" onclick="exportModel('GLB')"><span class="fmt glb">GLB</span>glTF Binary<span style="margin-left:auto;font-size:10px;color:var(--nf-text3)">PBR</span></button>
+      <button class="export-btn" onclick="exportModel('FBX')"><span class="fmt fbx">FBX</span>Autodesk FBX<span style="margin-left:auto;font-size:10px;color:var(--nf-text3)">Rig</span></button>
+      <button class="export-btn" onclick="exportModel('STL')"><span class="fmt stl">STL</span>Stereolithography<span style="margin-left:auto;font-size:10px;color:var(--nf-text3)">CAD</span></button>
+      <button class="export-btn" onclick="exportModel('PLY')"><span class="fmt">PLY</span>Point Cloud PLY<span style="margin-left:auto;font-size:10px;color:var(--nf-text3)">XYZ</span></button>
+      <button class="export-btn" onclick="exportModel('USD')"><span class="fmt" style="background:rgba(255,107,0,0.1);color:var(--nf-orange)">USD</span>Universal Scene<span style="margin-left:auto;font-size:10px;color:var(--nf-text3)">VFX</span></button>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Texture Maps</div>
+      <div class="texture-preview" id="tex-preview">
+        <div class="tex-card"><canvas id="tc-albedo" width="80" height="80"></canvas><div class="tex-label">Albedo</div></div>
+        <div class="tex-card"><canvas id="tc-normal" width="80" height="80"></canvas><div class="tex-label">Normal</div></div>
+        <div class="tex-card"><canvas id="tc-rough" width="80" height="80"></canvas><div class="tex-label">Roughness</div></div>
+        <div class="tex-card"><canvas id="tc-metal" width="80" height="80"></canvas><div class="tex-label">Metallic</div></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Pipeline Log</div>
+      <div class="log-area" id="log-area">
+        <div class="log-line"><span class="log-time">00:00</span><span class="log-msg info">NeuralForge v2.4.1 initialized</span></div>
+        <div class="log-line"><span class="log-time">00:00</span><span class="log-msg ok">CUDA device: RTX 4090</span></div>
+        <div class="log-line"><span class="log-time">00:00</span><span class="log-msg">Models loaded to VRAM</span></div>
+        <div class="log-line"><span class="log-time">00:00</span><span class="log-msg">Awaiting input...</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-label">Use Case</div>
+      <select class="nf-select" style="margin-bottom:8px">
+        <option>Game Assets (Unity/Unreal)</option>
+        <option>Robotics Simulation</option>
+        <option>CAD/Engineering</option>
+        <option>VFX Pipeline</option>
+        <option>3D Printing</option>
+        <option>AR/VR Assets</option>
+      </select>
+      <div class="section-label" style="margin-top:8px">Lighting Preset</div>
+      <select class="nf-select" id="lighting-select" onchange="changeLighting(this.value)">
+        <option value="studio">Studio HDRI</option>
+        <option value="outdoor">Outdoor Daylight</option>
+        <option value="night">Night Cyberpunk</option>
+        <option value="neutral">Neutral Grey</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<script>
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 1000);
+camera.position.set(3, 2, 3);
+const renderer = new THREE.WebGLRenderer({canvas: document.getElementById('three-canvas'), antialias: true, alpha: true});
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.2;
+
+const vp = document.getElementById('viewport');
+function resizeRenderer() {
+  const w = vp.clientWidth, h = vp.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+resizeRenderer();
+new ResizeObserver(resizeRenderer).observe(vp);
+
+const ambientLight = new THREE.AmbientLight(0x334466, 0.5);
+scene.add(ambientLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+dirLight.position.set(5, 8, 5);
+dirLight.castShadow = true;
+scene.add(dirLight);
+const rimLight = new THREE.DirectionalLight(0x0088ff, 0.8);
+rimLight.position.set(-5, 2, -3);
+scene.add(rimLight);
+const fillLight = new THREE.PointLight(0x7b2fff, 0.6, 20);
+fillLight.position.set(0, -2, 4);
+scene.add(fillLight);
+
+const gridHelper = new THREE.GridHelper(10, 20, 0x0f2a4a, 0x0a1525);
+scene.add(gridHelper);
+
+let mesh = null, wireframeMesh = null;
+let isDragging = false, lastMouse = {x:0, y:0};
+let spherical = {theta: 0.5, phi: 1.0, radius: 5};
+let renderMode = 'solid';
+let modelGenerated = false;
+let frameCount = 0, lastFpsTime = 0;
+let fpsDisplay = 0;
+
+const canvas = document.getElementById('three-canvas');
+canvas.addEventListener('mousedown', e => { isDragging = true; lastMouse = {x: e.clientX, y: e.clientY}; });
+window.addEventListener('mouseup', () => isDragging = false);
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  const dx = e.clientX - lastMouse.x;
+  const dy = e.clientY - lastMouse.y;
+  spherical.theta -= dx * 0.008;
+  spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi - dy * 0.008));
+  lastMouse = {x: e.clientX, y: e.clientY};
+  updateCamera();
+});
+canvas.addEventListener('wheel', e => {
+  spherical.radius = Math.max(1, Math.min(20, spherical.radius + e.deltaY * 0.01));
+  updateCamera();
+});
+
+function updateCamera() {
+  const sin_phi = Math.sin(spherical.phi);
+  camera.position.set(
+    spherical.radius * sin_phi * Math.sin(spherical.theta),
+    spherical.radius * Math.cos(spherical.phi),
+    spherical.radius * sin_phi * Math.cos(spherical.theta)
+  );
+  camera.lookAt(0, 0.5, 0);
+}
+
+function createDemoMesh() {
+  const geom = new THREE.TorusKnotGeometry(0.8, 0.3, 180, 32, 2, 3);
+  const mat = new THREE.MeshStandardMaterial({
+    color: 0x3a8acc,
+    metalness: 0.6,
+    roughness: 0.3,
+    envMapIntensity: 1.0,
+  });
+  if (mesh) { scene.remove(mesh); scene.remove(wireframeMesh); }
+  mesh = new THREE.Mesh(geom, mat);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+  wireframeMesh = new THREE.Mesh(geom, new THREE.MeshBasicMaterial({color: 0x00d4ff, wireframe: true, transparent: true, opacity: 0.15}));
+  scene.add(wireframeMesh);
+  wireframeMesh.visible = false;
+  const triCount = geom.index ? geom.index.count / 3 : geom.attributes.position.count / 3;
+  const vertCount = geom.attributes.position.count;
+  document.getElementById('stat-vertices').textContent = vertCount.toLocaleString();
+  document.getElementById('stat-triangles').textContent = Math.round(triCount).toLocaleString();
+  document.getElementById('stat-materials').textContent = '4';
+  document.getElementById('stat-uvchannels').textContent = '2';
+  document.getElementById('hud-poly').textContent = Math.round(triCount).toLocaleString() + ' TRIS';
+  document.getElementById('stat-verts').querySelector('span').textContent = vertCount.toLocaleString();
+  document.getElementById('stat-tris').querySelector('span').textContent = Math.round(triCount).toLocaleString();
+  document.getElementById('hud-model-name').textContent = 'MODEL_001.GLB';
+  document.getElementById('no-model-msg').style.display = 'none';
+  modelGenerated = true;
+  applyRenderMode(renderMode);
+}
+
+function applyRenderMode(mode) {
+  if (!mesh) return;
+  renderMode = mode;
+  if (mode === 'wireframe') {
+    mesh.visible = false;
+    wireframeMesh.visible = true;
+    wireframeMesh.material.opacity = 0.9;
+    document.getElementById('hud-render-mode').textContent = 'WIREFRAME';
+  } else if (mode === 'clay') {
+    mesh.visible = true;
+    wireframeMesh.visible = false;
+    mesh.material.color.set(0xbbbbaa);
+    mesh.material.metalness = 0;
+    mesh.material.roughness = 0.9;
+    document.getElementById('hud-render-mode').textContent = 'CLAY';
+  } else if (mode === 'normal') {
+    mesh.visible = true;
+    wireframeMesh.visible = false;
+    mesh.material.color.set(0x8888ff);
+    mesh.material.metalness = 0;
+    mesh.material.roughness = 1;
+    document.getElementById('hud-render-mode').textContent = 'NORMAL';
+  } else {
+    mesh.visible = true;
+    wireframeMesh.visible = false;
+    mesh.material.color.set(0x3a8acc);
+    mesh.material.metalness = 0.6;
+    mesh.material.roughness = 0.3;
+    document.getElementById('hud-render-mode').textContent = 'SOLID';
+  }
+}
+
+function setRenderMode(mode, btn) {
+  document.querySelectorAll('.vp-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  applyRenderMode(mode);
+}
+function resetCamera() { spherical = {theta: 0.5, phi: 1.0, radius: 5}; updateCamera(); }
+
+let autoRotate = true;
+function animate(timestamp) {
+  requestAnimationFrame(animate);
+  if (mesh && autoRotate) { mesh.rotation.y += 0.004; if (wireframeMesh) wireframeMesh.rotation.y = mesh.rotation.y; }
+  frameCount++;
+  if (timestamp - lastFpsTime > 1000) {
+    fpsDisplay = Math.round(frameCount * 1000 / (timestamp - lastFpsTime));
+    frameCount = 0; lastFpsTime = timestamp;
+    document.getElementById('stat-fps').querySelector('span').textContent = fpsDisplay;
+  }
+  renderer.render(scene, camera);
+}
+animate(0);
+
+let uploadedImages = [];
+function handleFiles(files) {
+  for (let f of files) {
+    if (uploadedImages.length >= 6) break;
+    const url = URL.createObjectURL(f);
+    uploadedImages.push({url, name: f.name});
+  }
+  renderImgGrid();
+}
+function renderImgGrid() {
+  const grid = document.getElementById('img-grid');
+  grid.innerHTML = '';
+  uploadedImages.forEach((img, i) => {
+    const thumb = document.createElement('div');
+    thumb.className = 'img-thumb';
+    thumb.innerHTML = `<img src="${img.url}" alt=""><div class="remove-btn" onclick="removeImg(${i})">✕</div>`;
+    grid.appendChild(thumb);
+  });
+}
+function removeImg(idx) { uploadedImages.splice(idx, 1); renderImgGrid(); }
+
+const dropZone = document.getElementById('drop-zone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  handleFiles(e.dataTransfer.files);
+});
+
+let generationSteps = [
+  {name:'CLIP Analysis',dur:800},
+  {name:'Depth Estimate',dur:1200},
+  {name:'Multi-view Gen',dur:2000},
+  {name:'3D Reconstruct',dur:2500},
+  {name:'Mesh Neural',dur:1800},
+  {name:'Retopology',dur:1200},
+  {name:'UV Unwrap',dur:900},
+  {name:'Texture Bake',dur:1500}
+];
+let logMsgs = [
+  'Encoding image features via CLIP ViT-L/14...',
+  'Running MiDaS depth estimation at 384x384...',
+  'Generating 6 synthetic views via Zero-1-to-3...',
+  'TripoSR sparse volume reconstruction...',
+  'Marching cubes → neural mesh extraction...',
+  'QuadriFlow retopology, target 32K polys...',
+  'xAtlas UV unwrapping, 2 channels...',
+  'Baking PBR maps: albedo, normal, rough, metal...'
+];
+
+function addLog(msg, cls='') {
+  const logArea = document.getElementById('log-area');
+  const now = new Date();
+  const t = `${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const line = document.createElement('div');
+  line.className = 'log-line';
+  line.innerHTML = `<span class="log-time">${t}</span><span class="log-msg ${cls}">${msg}</span>`;
+  logArea.appendChild(line);
+  logArea.scrollTop = logArea.scrollHeight;
+}
+
+function startGeneration() {
+  const btn = document.getElementById('gen-btn');
+  const progArea = document.getElementById('progress-area');
+  btn.classList.add('processing');
+  document.getElementById('gen-btn-text').textContent = '⬡ PROCESSING...';
+  btn.disabled = true;
+  progArea.style.display = 'block';
+  for (let i = 0; i < 8; i++) {
+    const pd = document.getElementById(`pd-${i}`);
+    const pn = document.getElementById(`pn-${i}`);
+    pd.className = 'pipe-dot pending';
+    pn.className = 'pipe-name pending';
+  }
+  addLog('Generation started.', 'info');
+  let totalDur = generationSteps.reduce((s, x) => s + x.dur, 0);
+  let elapsed = 0;
+  let stepIdx = 0;
+  function runStep() {
+    if (stepIdx >= generationSteps.length) {
+      document.getElementById('gen-btn-text').textContent = '⬡ GENERATE 3D MODEL';
+      btn.classList.remove('processing');
+      btn.disabled = false;
+      addLog('Generation complete!', 'ok');
+      createDemoMesh();
+      generateTexturePreviews();
+      return;
+    }
+    const step = generationSteps[stepIdx];
+    const pd = document.getElementById(`pd-${stepIdx}`);
+    const pn = document.getElementById(`pn-${stepIdx}`);
+    pd.className = 'pipe-dot running';
+    pn.className = 'pipe-name running';
+    addLog(logMsgs[stepIdx]);
+    document.getElementById('progress-stage').textContent = step.name + '...';
+    const startPct = Math.round(elapsed / totalDur * 100);
+    const endPct = Math.round((elapsed + step.dur) / totalDur * 100);
+    let pct = startPct;
+    const inc = (endPct - startPct) / (step.dur / 50);
+    const timer = setInterval(() => {
+      pct = Math.min(endPct, pct + inc);
+      document.getElementById('progress-pct').textContent = Math.round(pct) + '%';
+      document.getElementById('prog-fill').style.width = Math.round(pct) + '%';
+    }, 50);
+    setTimeout(() => {
+      clearInterval(timer);
+      pd.className = 'pipe-dot done';
+      pn.className = 'pipe-name done';
+      elapsed += step.dur;
+      stepIdx++;
+      runStep();
+    }, step.dur);
+  }
+  runStep();
+}
+
+function generateTexturePreviews() {
+  function drawAlbedo(id) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    const grad = ctx.createLinearGradient(0,0,80,80);
+    grad.addColorStop(0,'#1a4a8a');
+    grad.addColorStop(0.5,'#3a8acc');
+    grad.addColorStop(1,'#5ab0ee');
+    ctx.fillStyle = grad; ctx.fillRect(0,0,80,80);
+    for (let i = 0; i < 12; i++) {
+      ctx.fillStyle = `rgba(${Math.random()*100+100},${Math.random()*80+100},${Math.random()*60+140},0.3)`;
+      ctx.beginPath(); ctx.arc(Math.random()*80, Math.random()*80, Math.random()*15+4, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  function drawNormal(id) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    const img = ctx.createImageData(80,80);
+    for (let i = 0; i < img.data.length; i += 4) {
+      const x = (i/4 % 80) / 80; const y = Math.floor(i/4/80) / 80;
+      img.data[i] = Math.round((Math.sin(x*12)*0.5+0.5)*255);
+      img.data[i+1] = Math.round((Math.cos(y*12)*0.5+0.5)*255);
+      img.data[i+2] = 200; img.data[i+3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+  function drawRough(id) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    for (let y = 0; y < 80; y++) for (let x = 0; x < 80; x++) {
+      const v = Math.round(Math.random()*40 + 140);
+      ctx.fillStyle = `rgb(${v},${v},${v})`; ctx.fillRect(x,y,1,1);
+    }
+  }
+  function drawMetal(id) {
+    const c = document.getElementById(id);
+    if (!c) return;
+    const ctx = c.getContext('2d');
+    for (let y = 0; y < 80; y++) for (let x = 0; x < 80; x++) {
+      const v = Math.round((Math.sin(x/5)*0.3+0.4)*255);
+      ctx.fillStyle = `rgb(${v},${v},${v})`; ctx.fillRect(x,y,1,1);
+    }
+  }
+  drawAlbedo('tc-albedo'); drawNormal('tc-normal'); drawRough('tc-rough'); drawMetal('tc-metal');
+}
+
+function updateSlider(el, valId, fn) {
+  const v = parseInt(el.value);
+  document.getElementById(valId).textContent = fn(v);
+}
+
+function switchMode(mode, el) {
+  document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('mode-upload').style.display = mode === 'upload' ? '' : 'none';
+  document.getElementById('mode-text').style.display = mode === 'text' ? '' : 'none';
+  document.getElementById('mode-url').style.display = mode === 'url' ? '' : 'none';
+}
+
+function selectQuality(el) {
+  document.querySelectorAll('.quality-opt').forEach(o => o.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function setTab(el, tab) {
+  document.querySelectorAll('.nav-pill:not(.cta)').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  if (tab === 'text-to-3d') { switchMode('text', document.querySelectorAll('.mode-tab')[1]); }
+}
+
+const modelInfos = {
+  triposr: 'Fast reconstruction via TripoSR. Ideal for single-view generation. ~2s on GPU.',
+  instantmesh: 'InstantMesh: balanced quality/speed. Multi-view diffusion + mesh reconstruction. ~8s.',
+  zero123: 'Zero-1-to-3: generates novel views first, then reconstructs. Best for multi-view input. ~12s.',
+  wonder3d: 'Wonder3D: high-fidelity with normal maps. Best for detailed objects. ~15s.',
+  one2345: 'One-2-3-45++: highest quality pipeline. Full diffusion-based 3D. ~25s on GPU.'
+};
+function updateModelInfo() {
+  const v = document.getElementById('model-select').value;
+  document.getElementById('model-info').textContent = modelInfos[v] || '';
+}
+
+function changeLighting(val) {
+  if (val === 'night') {
+    ambientLight.color.set(0x1a0a2a);
+    dirLight.color.set(0x7b2fff);
+    rimLight.color.set(0xff0088);
+  } else if (val === 'outdoor') {
+    ambientLight.color.set(0x88aacc);
+    dirLight.color.set(0xfff4e0);
+    rimLight.color.set(0x88ccff);
+  } else if (val === 'neutral') {
+    ambientLight.color.set(0x888888);
+    dirLight.color.set(0xffffff);
+    rimLight.color.set(0xcccccc);
+  } else {
+    ambientLight.color.set(0x334466);
+    dirLight.color.set(0xffffff);
+    rimLight.color.set(0x0088ff);
+  }
+}
+
+function exportModel(fmt) {
+  if (!modelGenerated) { addLog('No model to export. Generate first.', 'warn'); return; }
+  addLog(`Exporting ${fmt}... (simulated)`, 'info');
+  setTimeout(() => addLog(`${fmt} exported successfully.`, 'ok'), 800);
+}
+</script>
+</body>
+</html>
