@@ -1,4 +1,4 @@
-# 🧊 NeuroNesh 3D — AI-Powered 3D Model Generator
+# 🧊 Abinesh 3D — AI-Powered 3D Model Generator
 
 <p align="center">
   <strong>A premium, full-stack web application for generating production-grade 3D models from images, text prompts, and multi-view photographs using the Tripo AI API.</strong>
@@ -25,7 +25,7 @@
 
 ## 🌐 Overview
 
-NeuroNesh 3D is a comprehensive web-based platform that leverages the **Tripo AI v2 API** to transform 2D images and text descriptions into high-fidelity 3D models. The application features a cyberpunk-inspired premium UI with a real-time WebGL viewport, an asynchronous task pipeline, and support for the full suite of Tripo's AI capabilities — including mesh refinement, stylization, animation rigging, and cross-format conversion.
+Abinesh 3D is a comprehensive web-based platform that leverages the **Tripo AI v2 API** to transform 2D images and text descriptions into high-fidelity 3D models. The application features a cyberpunk-inspired premium UI with a real-time WebGL viewport, an asynchronous task pipeline, and support for the full suite of Tripo's AI capabilities — including mesh refinement, stylization, animation rigging, and cross-format conversion.
 
 ---
 
@@ -157,7 +157,7 @@ npm start
 You should see:
 ```
   ╔═══════════════════════════════════════════════╗
-  ║   NeuroNesh 3D — Tripo AI Generator           ║
+  ║   Abinesh 3D — Tripo AI Generator           ║
   ║   Server running on http://localhost:3000      ║
   ╚═══════════════════════════════════════════════╝
 ```
